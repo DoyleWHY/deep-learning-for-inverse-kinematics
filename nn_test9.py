@@ -18,7 +18,7 @@ Q3 = []
 posX = []
 posY = []
 posZ = []
-samples = 10000
+samples = 15000
 
 def customloss (yTrue,yPred):    #error function
     return K.sum((yTrue - yPred)**2)
@@ -57,7 +57,7 @@ def build_model(init = 'glorot_uniform'):              # NN Model
     model.add(keras.layers.Dense(3, input_dim=3, kernel_initializer=init))
     #model.add(keras.layers.Dense(100,use_bias=True, activation='tanh'))
     #model.add(keras.layers.Dense(100, use_bias=True, activation='tanh'))
-    model.add(keras.layers.Dense(200, use_bias=True, activation='relu', kernel_initializer=init))    #relu, tanh, softmax, linear, sigmoid
+    model.add(keras.layers.Dense(300, use_bias=True, activation='relu', kernel_initializer=init))    #relu, tanh, softmax, linear, sigmoid
     model.add(keras.layers.Dense(2, use_bias=True, activation='linear', kernel_initializer=init))
     model.compile(optimizer=tf.train.AdamOptimizer(0.05), loss=customloss, metrics=['accuracy'])  # 0.05
     return model

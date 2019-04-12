@@ -30,14 +30,105 @@ def Ze (h,i,j):
     return math.cos(i) + (math.cos(i)*math.cos(j))/2 - (math.sin(i)*math.sin(j))/2 + 1
     
 def CalQ1 (px,py):
+    if px == 0 and py == 0 :
+        return 0
+    if px == 0 and py > 0 :
+        return math.atan2(py,px)
+    if px == 0 and py < 0 :
+        return -math.atan2(py,px)
+    if px > 0 and py == 0 :
+        return math.atan2(py,px)
+    if px < 0 and py == 0 :
+        return math.atan2(py,px)
+        
     if px > 0 and py > 0 :
-        return math.atan2(px,py)
+        return math.atan2(py,px)
     if px < 0 and py > 0 :
-        return math.atan2(px,py) + math.pi
+        return math.atan2(py,px)
     if px < 0 and py < 0 :
-        return -math.atan2(px,py)
+        return -math.atan2(py,px)
     if px > 0 and py < 0 :
-        return math.atan2(px,py) - math.pi/2
+        return -math.atan2(py,px)
+        
+def train_data(x,y,z):
+    single_data_1 = np.array([[x, y, z]])
+    single_data = x_scaler.transform(single_data_1)
+    single_prediction = loaded_model.predict(single_data)
+    single_real_prediction = y_scaler.inverse_transform(single_prediction)
+
+    print(single_data_1[0,0]," ",single_data_1[0,1]," ",single_data_1[0,2])
+    print(Xe(CalQ1(x,y),single_real_prediction[0,0],single_real_prediction[0,1])," ",Ye(CalQ1(x,y),single_real_prediction[0,0],single_real_prediction[0,1])," ",Ze(CalQ1(x,y),single_real_prediction[0,0],single_real_prediction[0,1]))
+    print("*********************************")
+
+def train_angle(x,y,z):
+    single_data_1 = np.array([[x, y, z]])
+    single_data = x_scaler.transform(single_data_1)
+    single_prediction = loaded_model.predict(single_data)
+    single_real_prediction = y_scaler.inverse_transform(single_prediction)
+
+    print(CalQ1(x,y),single_real_prediction[0,0],single_real_prediction[0,1])
+    print("****************train data*****************")
+    return (CalQ1(x,y),single_real_prediction[0,0],single_real_prediction[0,1])
+
+def jacobian_angle(x,y,z,Q1,Q2,Q3):
+    for i in range(1,10) :
+    QCurrent = np.matrix([[Q1],
+                        [Q2],
+                        [Q3]])
+    t1 = QCurrent[0,0]
+    t2 = QCurrent[1,0]
+    t3 = QCurrent[2,0]
+    #print(t1,t2,t3)
+
+    xCurrent = math.cos(t1)*math.sin(t2)+(math.cos(t1)*math.cos(t2)*math.sin(t3))/2+(math.cos(t1)*math.cos(t3)*math.sin(t2))/2
+    yCurrent = math.sin(t1)*math.sin(t2)+(math.cos(t2)*math.sin(t1)*math.sin(t3))/2+(math.cos(t3)*math.sin(t1)*math.sin(t2))/2
+    zCurrent = math.cos(t2)+(math.cos(t2)*math.cos(t3))/2-(math.sin(t2)*math.sin(t3))/2+1
+    #print(xCurrent,yCurrent,zCurrent)
+	
+    deltX = x - xCurrent
+    deltY = y - yCurrent
+    deltZ = z - zCurrent
+    #print(deltX,deltY,deltZ)
+
+    deltPosition = np.matrix([[deltX],
+                             [deltY],
+                             [deltZ]])
+
+    jaco = np.matrix([[-math.sin(t1)*math.sin(t2)-(math.cos(t2)*math.sin(t1)*math.sin(t3))/2-(math.cos(t3)*math.sin(t1)*math.sin(t2))/2, math.cos(t1)*math.cos(t2)-(math.cos(t1)*math.sin(t2)*math.sin(t3))/2+(math.cos(t1)*math.cos(t2)*math.cos(t3))/2, (math.cos(t1)*math.cos(t2)*math.cos(t3))/2-(math.cos(t1)*math.sin(t2)*math.sin(t3))/2],
+                     [math.cos(t1)*math.sin(t2)+(math.cos(t1)*math.cos(t2)*math.sin(t3))/2+(math.cos(t1)*math.cos(t3)*math.sin(t2))/2, math.cos(t2)*math.sin(t1)+(math.cos(t2)*math.cos(t3)*math.sin(t1))/2-(math.sin(t1)*math.sin(t2)*math.sin(t3))/2, (math.cos(t2)*math.cos(t3)*math.sin(t1))/2-(math.sin(t1)*math.sin(t2)*math.sin(t3))/2],
+                     [0, -math.sin(t2)-(math.cos(t2)*math.sin(t3))/2-(math.cos(t3)*math.sin(t2))/2, -(math.cos(t2)*math.sin(t3))/2-(math.cos(t3)*math.sin(t2))/2]])
+    #print(jaco[0,0],jaco[0,1],jaco[0,2])
+    #print(jaco[1,0],jaco[1,1],jaco[1,2])
+    #print(jaco[2,0],jaco[2,1],jaco[2,2])
+    
+    #print(np.linalg.pinv(jaco)[0,0],np.linalg.pinv(jaco)[0,1],np.linalg.pinv(jaco)[0,2])
+    #print(np.linalg.pinv(jaco)[1,0],np.linalg.pinv(jaco)[1,1],np.linalg.pinv(jaco)[1,2])
+    #print(np.linalg.pinv(jaco)[2,0],np.linalg.pinv(jaco)[2,1],np.linalg.pinv(jaco)[2,2])
+    
+    deltQ = np.linalg.pinv(jaco)*deltPosition
+    #print(deltQ[0,0],deltQ[1,0],deltQ[2,0])
+    
+    QCurrent = QCurrent + deltQ
+
+    while QCurrent[0,0] > 2*math.pi :
+        QCurrent[0,0] = QCurrent[0,0] - 2*math.pi;
+    while QCurrent[0,0] < 0 :
+        QCurrent[0,0] = QCurrent[0,0] + 2*math.pi;
+
+    while QCurrent[1,0] > 2*math.pi :
+        QCurrent[1,0] = QCurrent[1,0] - 2*math.pi;
+    while QCurrent[1,0] < 0 :
+        QCurrent[1,0] = QCurrent[1,0] + 2*math.pi;
+
+    while QCurrent[2,0] > 2*math.pi :
+        QCurrent[2,0] = QCurrent[2,0] - 2*math.pi;
+    while QCurrent[2,0] < 0 :
+        QCurrent[2,0] = QCurrent[2,0] + 2*math.pi;
+
+    print(QCurrent[0,0], QCurrent[1,0], QCurrent[2,0])
+    print("****************jacobian inverse data*****************")
+    return (QCurrent[0,0], QCurrent[1,0], QCurrent[2,0])
+
 
 # load json and create model
 json_file = open('model_doyle_type3.json', 'r')
@@ -98,3 +189,6 @@ single_real_prediction = y_scaler.inverse_transform(single_prediction)
 print(single_data_1[0,0]," ",single_data_1[0,1]," ",single_data_1[0,2])
 print(Xe(CalQ1(0.5,0.6),single_real_prediction[0,0],single_real_prediction[0,1])," ",Ye(CalQ1(0.5,0.6),single_real_prediction[0,0],single_real_prediction[0,1])," ",Ze(CalQ1(0.5,0.6),single_real_prediction[0,0],single_real_prediction[0,1]))
 print("*********************************")
+
+train_angle(0.5,0.6,0.7)
+jacobian_angle(0.5,0.6,0.7,1.5,1.5,1.5)
